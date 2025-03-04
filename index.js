@@ -62,6 +62,36 @@ function parseDate(dateString) {
     return new Date(year, month, day);
 }
 
+function printTable(todos) {
+    if (todos.length === 0) {
+        console.log('Нет TODO для отображения.');
+        return;
+    }
+
+    const maxWidths = [1, 10, 10, 50]; // Ограничения ширины колонок
+    const headers = ['!', 'User', 'Date', 'Comment'];
+
+    function formatCell(text, width) {
+        if (text.length > width) return text.slice(0, width - 3) + '...';
+        return text.padEnd(width, ' ');
+    }
+
+    const formattedRows = todos.map(todo => [
+        todo.importance > 0 ? '!' : '',
+        formatCell(todo.user, maxWidths[1]),
+        formatCell(todo.date, maxWidths[2]),
+        formatCell(todo.text, maxWidths[3])
+    ]);
+
+    const headerRow = headers.map((h, i) => formatCell(h, maxWidths[i])).join(' | ');
+    const separator = maxWidths.map(w => '-'.repeat(w)).join('-|-');
+
+    console.log(headerRow);
+    console.log(separator);
+    formattedRows.forEach(row => console.log(row.join(' | ')));
+    console.log(separator);
+}
+
 function processCommand(command) {
     const [cmd, ...args] = command.split(' ');
 
@@ -71,13 +101,11 @@ function processCommand(command) {
             break;
 
         case 'show':
-            extractTodosFromFiles().forEach(todo => console.log(todo.text));
+            printTable(extractTodosFromFiles());
             break;
 
         case 'important':
-            extractTodosFromFiles()
-                .filter(todo => todo.importance > 0)
-                .forEach(todo => console.log(todo.text));
+            printTable(extractTodosFromFiles().filter(todo => todo.importance > 0));
             break;
 
         case 'user':
@@ -86,9 +114,7 @@ function processCommand(command) {
                 break;
             }
             const userName = args.join(' ').toLowerCase();
-            extractTodosFromFiles()
-                .filter(todo => todo.user.toLowerCase() === userName)
-                .forEach(todo => console.log(todo.text));
+            printTable(extractTodosFromFiles().filter(todo => todo.user.toLowerCase() === userName));
             break;
 
         case 'sort':
@@ -98,6 +124,7 @@ function processCommand(command) {
             }
             const sortType = args[0];
             let sortedTodos = extractTodosFromFiles();
+
 
             if (sortType === 'importance') {
                 sortedTodos.sort((a, b) => b.importance - a.importance);
@@ -122,7 +149,7 @@ function processCommand(command) {
                 break;
             }
 
-            sortedTodos.forEach(todo => console.log(todo.text));
+            printTable(sortedTodos);
             break;
 
         case 'date':
@@ -136,9 +163,9 @@ function processCommand(command) {
                 break;
             }
 
-            extractTodosFromFiles()
-                .filter(todo => todo.dateObj && todo.dateObj > filterDate)
-                .forEach(todo => console.log(todo.text));
+            printTable(
+                extractTodosFromFiles().filter(todo => todo.dateObj && todo.dateObj > filterDate)
+            );
             break;
 
         default:
