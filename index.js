@@ -23,8 +23,21 @@ function extractTodosFromFiles() {
             const match = line.match(todoRegex);
             if (match) {
                 const text = match[1].trim();
-                const importance = (text.match(/!/g) || []).length; // Подсчитываем !
-                todos.push({ text, importance });
+                const importance = (text.match(/!/g) || []).length;
+
+                // Парсим user, date и comment (если есть)
+                let user = '';
+                let date = '';
+                let comment = text;
+
+                const parts = text.split(';');
+                if (parts.length === 3) {
+                    user = parts[0].trim();
+                    date = parts[1].trim();
+                    comment = parts[2].trim();
+                }
+
+                todos.push({ text: comment, importance, user, date });
             }
         }
     }
@@ -32,7 +45,9 @@ function extractTodosFromFiles() {
 }
 
 function processCommand(command) {
-    switch (command) {
+    const [cmd, ...args] = command.split(' ');
+
+    switch (cmd) {
         case 'exit':
             process.exit(0);
             break;
@@ -44,6 +59,17 @@ function processCommand(command) {
         case 'important':
             extractTodosFromFiles()
                 .filter(todo => todo.importance > 0)
+                .forEach(todo => console.log(todo.text));
+            break;
+
+        case 'user':
+            if (args.length === 0) {
+                console.log('Укажите имя пользователя: например, "user Veronika"');
+                break;
+            }
+            const userName = args.join(' ').toLowerCase();
+            extractTodosFromFiles()
+                .filter(todo => todo.user.toLowerCase() === userName)
                 .forEach(todo => console.log(todo.text));
             break;
 
