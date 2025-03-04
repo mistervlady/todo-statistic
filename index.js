@@ -73,42 +73,6 @@ function processCommand(command) {
                 .forEach(todo => console.log(todo.text));
             break;
 
-        case 'sort':
-            if (args.length === 0) {
-                console.log('Укажите тип сортировки: importance, user или date');
-                break;
-            }
-            const sortType = args[0];
-            let sortedTodos = extractTodosFromFiles();
-
-            if (sortType === 'importance') {
-                sortedTodos.sort((a, b) => b.importance - a.importance);
-            } else if (sortType === 'user') {
-                sortedTodos.sort((a, b) => {
-                    const userA = a.user.toLowerCase();
-                    const userB = b.user.toLowerCase();
-                    if (!userA && !userB) return 0;
-                    if (!userA) return 1;
-                    if (!userB) return -1;
-                    return userA.localeCompare(userB);
-                });
-            } else if (sortType === 'date') {
-                sortedTodos.sort((a, b) => {
-                    const dateA = new Date(a.date);
-                    const dateB = new Date(b.date);
-                    if (isNaN(dateA) && isNaN(dateB)) return 0;
-                    if (isNaN(dateA)) return 1;
-                    if (isNaN(dateB)) return -1;
-                    return dateB - dateA;
-                });
-            } else {
-                console.log('Неверный тип сортировки. Используйте: importance, user или date');
-                break;
-            }
-
-            sortedTodos.forEach(todo => console.log(todo.text));
-            break;
-
         default:
             console.log('wrong command');
             break;
