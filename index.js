@@ -1,3 +1,4 @@
+const path = require('path');
 const { getAllFilePathsWithExtension, readFile } = require('./fileSystem');
 const { readLine } = require('./console');
 
@@ -8,6 +9,7 @@ function getFiles() {
     const filePaths = getAllFilePathsWithExtension(process.cwd(), 'js');
     return filePaths.map(filePath => ({
         filePath,
+        fileName: path.basename(filePath),
         content: readFile(filePath),
     }));
 }
@@ -17,7 +19,7 @@ function extractTodosFromFiles() {
     const todoRegex = /\/\/\s*TODO\s*(.*)/i;
 
     let todos = [];
-    for (const { filePath, content } of files) {
+    for (const { filePath, fileName, content } of files) {
         const lines = content.split('\n');
         for (const line of lines) {
             const match = line.match(todoRegex);
@@ -38,7 +40,7 @@ function extractTodosFromFiles() {
                     dateObj = parseDate(date);
                 }
 
-                todos.push({ text: comment, importance, user, date, dateObj });
+                todos.push({ text: comment, importance, user, date, dateObj, fileName });
             }
         }
     }
@@ -68,27 +70,33 @@ function printTable(todos) {
         return;
     }
 
-    const maxWidths = [1, 10, 10, 50]; // Ограничения ширины колонок
-    const headers = ['!', 'User', 'Date', 'Comment'];
-
-    function formatCell(text, width) {
-        if (text.length > width) return text.slice(0, width - 3) + '...';
-        return text.padEnd(width, ' ');
-    }
-
-    const formattedRows = todos.map(todo => [
+    const headers = ['!', 'User', 'Date', 'File', 'Comment'];
+    let rows = todos.map(todo => [
         todo.importance > 0 ? '!' : '',
-        formatCell(todo.user, maxWidths[1]),
-        formatCell(todo.date, maxWidths[2]),
-        formatCell(todo.text, maxWidths[3])
+        todo.user || '',
+        todo.date || '',
+        todo.fileName || '',
+        todo.text || '',
     ]);
 
-    const headerRow = headers.map((h, i) => formatCell(h, maxWidths[i])).join(' | ');
-    const separator = maxWidths.map(w => '-'.repeat(w)).join('-|-');
+    // Определяем максимальную ширину для каждой колонки
+    const colWidths = headers.map((header, i) =>
+        Math.min(
+            Math.max(header.length, ...rows.map(row => row[i].length)),
+            i === 4 ? 50 : 15 // Обрезаем комментарии до 50, остальное до 15
+        )
+    );
 
-    console.log(headerRow);
+    function formatCell(text, width) {
+        return text.length > width ? text.slice(0, width - 3) + '...' : text.padEnd(width, ' ');
+    }
+
+    const formattedHeader = headers.map((h, i) => formatCell(h, colWidths[i])).join(' | ');
+    const separator = colWidths.map(w => '-'.repeat(w)).join('-|-');
+
+    console.log(formattedHeader);
     console.log(separator);
-    formattedRows.forEach(row => console.log(row.join(' | ')));
+    rows.forEach(row => console.log(row.map((val, i) => formatCell(val, colWidths[i])).join(' | ')));
     console.log(separator);
 }
 
@@ -117,6 +125,7 @@ function processCommand(command) {
             printTable(extractTodosFromFiles().filter(todo => todo.user.toLowerCase() === userName));
             break;
 
+
         case 'sort':
             if (args.length === 0) {
                 console.log('Укажите тип сортировки: importance, user или date');
@@ -124,7 +133,6 @@ function processCommand(command) {
             }
             const sortType = args[0];
             let sortedTodos = extractTodosFromFiles();
-
 
             if (sortType === 'importance') {
                 sortedTodos.sort((a, b) => b.importance - a.importance);
