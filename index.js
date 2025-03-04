@@ -28,19 +28,38 @@ function extractTodosFromFiles() {
                 let user = '';
                 let date = '';
                 let comment = text;
+                let dateObj = null;
 
                 const parts = text.split(';');
                 if (parts.length === 3) {
                     user = parts[0].trim();
                     date = parts[1].trim();
                     comment = parts[2].trim();
+                    dateObj = parseDate(date);
                 }
 
-                todos.push({ text: comment, importance, user, date });
+                todos.push({ text: comment, importance, user, date, dateObj });
             }
         }
     }
     return todos;
+}
+
+function parseDate(dateString) {
+    if (!dateString) return null;
+
+    const parts = dateString.split('-');
+    if (parts.length > 3) return null;
+
+    let year = parseInt(parts[0], 10);
+    let month = parts.length >= 2 ? parseInt(parts[1], 10) - 1 : 0;
+    let day = parts.length === 3 ? parseInt(parts[2], 10) : 1;
+
+    if (isNaN(year) || year < 1000) return null;
+    if (month < 0 || month > 11) return null;
+    if (day < 1 || day > 31) return null;
+
+    return new Date(year, month, day);
 }
 
 function processCommand(command) {
@@ -93,12 +112,10 @@ function processCommand(command) {
                 });
             } else if (sortType === 'date') {
                 sortedTodos.sort((a, b) => {
-                    const dateA = new Date(a.date);
-                    const dateB = new Date(b.date);
-                    if (isNaN(dateA) && isNaN(dateB)) return 0;
-                    if (isNaN(dateA)) return 1;
-                    if (isNaN(dateB)) return -1;
-                    return dateB - dateA;
+                    if (!a.dateObj && !b.dateObj) return 0;
+                    if (!a.dateObj) return 1;
+                    if (!b.dateObj) return -1;
+                    return b.dateObj - a.dateObj;
                 });
             } else {
                 console.log('Неверный тип сортировки. Используйте: importance, user или date');
@@ -106,6 +123,22 @@ function processCommand(command) {
             }
 
             sortedTodos.forEach(todo => console.log(todo.text));
+            break;
+
+        case 'date':
+            if (args.length === 0) {
+                console.log('Укажите дату в формате yyyy или yyyy-mm или yyyy-mm-dd');
+                break;
+            }
+            const filterDate = parseDate(args[0]);
+            if (!filterDate) {
+                console.log('Некорректный формат даты. Пример: 2018, 2018-03, 2018-03-02');
+                break;
+            }
+
+            extractTodosFromFiles()
+                .filter(todo => todo.dateObj && todo.dateObj > filterDate)
+                .forEach(todo => console.log(todo.text));
             break;
 
         default:
