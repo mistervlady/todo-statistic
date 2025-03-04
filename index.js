@@ -22,7 +22,9 @@ function extractTodosFromFiles() {
         for (const line of lines) {
             const match = line.match(todoRegex);
             if (match) {
-                todos.push(match[1].trim());
+                const text = match[1].trim();
+                const importance = (text.match(/!/g) || []).length; // Подсчитываем !
+                todos.push({ text, importance });
             }
         }
     }
@@ -36,8 +38,13 @@ function processCommand(command) {
             break;
 
         case 'show':
-            const todos = extractTodosFromFiles();
-            todos.forEach(todo => console.log(todo));
+            extractTodosFromFiles().forEach(todo => console.log(todo.text));
+            break;
+
+        case 'important':
+            extractTodosFromFiles()
+                .filter(todo => todo.importance > 0)
+                .forEach(todo => console.log(todo.text));
             break;
 
         default:
